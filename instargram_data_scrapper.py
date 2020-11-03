@@ -4,13 +4,15 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import tkinter as tk
+import tkinter.messagebox
 import os
 import re
 import time
 
-def scrapping(self, user, pwd):
+isRunning = False
+
+def scrapping(user, pwd, plus_url):
     base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
-    plus_url = input('검색할 태그를 입력하세요 : ') 
 
     url = base_url + quote_plus(plus_url) # url 합치기
 
@@ -71,13 +73,23 @@ def scrapping(self, user, pwd):
 
     browser.close()
 
+    global isRunning
+    isRunning = False
+
     return instagram_tags
 
-def get_str(txt,pwd):
-    id_ = txt.get()
-    password_ = pwd.get()
-    print(id_,password_)
-    return id_,password_
+def get_str():
+    global isRunning
+    if isRunning == False:
+        id_ = txt.get()
+        password_ = pwd.get()
+        search_ = search.get()
+        isRunning = True
+        a = scrapping(id_,password_,search_)
+    else:
+        tk.messagebox.showwarning("경고!","아직 크롤링 중입니다.")
+        
+
 
 root = tk.Tk()
 root.geometry('450x250+100+100')
@@ -93,11 +105,11 @@ pwd_lbl = tk.Label(root, text="Password")
 pwd_lbl.grid(row=1, column=0)
 pwd = tk.Entry(root, show='*')
 pwd.grid(row=1,column = 1)
-btn = tk.Button(root, text="OK", width=15 , command=get_str(txt,pwd))
-btn.grid(row=2, column=1)
-
-
+search_lbl = tk.Label(root, text="검색할 해시태그를 입력하세요")
+search_lbl.grid(row = 2, column = 0)
+search = tk.Entry(root)
+search.grid(row=2, column = 1)
+btn = tk.Button(root, text="실행", width=15 , command=get_str)
+btn.grid(row=3, column=1)
 
 root.mainloop()
-
-
