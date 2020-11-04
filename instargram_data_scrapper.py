@@ -13,69 +13,75 @@ import threading
 isRunning = False
 
 def scrapping(user, pwd, plus_url):
-    base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
+    try:
+        base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
 
-    url = base_url + quote_plus(plus_url) # url 합치기
+        url = base_url + quote_plus(plus_url) # url 합치기
 
-    instagram_tags = []
+        instagram_tags = []
 
-    browser = webdriver.Chrome('./chromedriver.exe')
-    browser.get(url)
+        browser = webdriver.Chrome('./chromedriver.exe')
+        browser.get(url)
 
-    time.sleep(2)
+        time.sleep(2)
 
-    html = browser.page_source
-    soup = BeautifulSoup(html)
+        html = browser.page_source
+        soup = BeautifulSoup(html)
 
-    browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click()
-    elem = browser.find_element_by_name('username')
-    elem.send_keys(user)
-    elem = browser.find_element_by_name('password')
-    elem.send_keys(pwd)
-    elem.send_keys(Keys.RETURN)
+        browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click()
+        elem = browser.find_element_by_name('username')
+        elem.send_keys(user)
+        elem = browser.find_element_by_name('password')
+        elem.send_keys(pwd)
+        elem.send_keys(Keys.RETURN)
 
-    time.sleep(3)
-
-    browser.find_element_by_css_selector('button.sqdOP.L3NKy.y3zKF').click()
-
-    time.sleep(3)
-
-    insta = soup.select('.v1Nh3.kIKUG._bz0w') #select를 이용하여 이미지 태그로 선택
-
-    if not os.path.isdir('./img\\{}'.format(plus_url)):
-        os.mkdir('./img\\{}'.format(plus_url))
-
-    n = 1
-    for i in insta:
-        time.sleep(1)
-        img_url = i.select_one('.KL4Bh').img['src']
-
-        with urlopen(img_url) as f:
-            with open('./img/' + plus_url + '/' + plus_url + str(n) + '.jpg',mode='wb') as h:
-                img = f.read()
-                h.write(img)
-            n += 1
-
-    browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click()
-    for i in range(0,n-1):
-        time.sleep(1)
-        data = browser.find_element_by_css_selector('div.C7I1f.X7jCj')
-        tag_raw = data.text
-        tags = re.findall('#[A-Za-z0-9가-힣]+', tag_raw)
-        tag = ''.join(tags).replace("#"," ")
-
-        tag_data = tag.split()
-
-        for tag_one in tag_data:
-            instagram_tags.append(tag_one)
-        
-        browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click()
         time.sleep(3)
 
-    browser.close()
+        browser.find_element_by_css_selector('button.sqdOP.L3NKy.y3zKF').click()
 
-    global isRunning
-    isRunning = False
+        time.sleep(3)
+
+        insta = soup.select('.v1Nh3.kIKUG._bz0w') #select를 이용하여 이미지 태그로 선택
+
+        if not os.path.isdir('./img\\{}'.format(plus_url)):
+            os.mkdir('./img\\{}'.format(plus_url))
+
+        n = 1
+        for i in insta:
+            time.sleep(1)
+            img_url = i.select_one('.KL4Bh').img['src']
+
+            with urlopen(img_url) as f:
+                with open('./img/' + plus_url + '/' + plus_url + str(n) + '.jpg',mode='wb') as h:
+                    img = f.read()
+                    h.write(img)
+                n += 1
+
+        browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click()
+        for i in range(0,n-1):
+            time.sleep(1)
+            data = browser.find_element_by_css_selector('div.C7I1f.X7jCj')
+            tag_raw = data.text
+            tags = re.findall('#[A-Za-z0-9가-힣]+', tag_raw)
+            tag = ''.join(tags).replace("#"," ")
+
+            tag_data = tag.split()
+
+            for tag_one in tag_data:
+                instagram_tags.append(tag_one)
+        
+            browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click()
+            time.sleep(3)
+
+        browser.close()
+
+        global isRunning
+        isRunning = False
+        tk.messagebox.showinfo("","크롤링이 완료되었습니다.")
+    except:
+        isRunning = False
+        tk.messagebox.showerror("","크롤링이 중단되었습니다.")
+        
 
 def get_str():
     global isRunning
@@ -92,7 +98,7 @@ def get_str():
 
 
 root = tk.Tk()
-root.geometry('450x250+100+100')
+root.geometry('325x475')
 root.title('인스타그램 크롤러')
 root.resizable(False,False)
 
