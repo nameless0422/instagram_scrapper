@@ -8,6 +8,7 @@ import tkinter.messagebox
 import os
 import re
 import time
+import threading
 
 isRunning = False
 
@@ -76,8 +77,6 @@ def scrapping(user, pwd, plus_url):
     global isRunning
     isRunning = False
 
-    return instagram_tags
-
 def get_str():
     global isRunning
     if isRunning == False:
@@ -85,7 +84,8 @@ def get_str():
         password_ = pwd.get()
         search_ = search.get()
         isRunning = True
-        a = scrapping(id_,password_,search_)
+        t = threading.Thread(target=scrapping, args=(id_,password_,search_))
+        t.start()
     else:
         tk.messagebox.showwarning("경고!","아직 크롤링 중입니다.")
         
