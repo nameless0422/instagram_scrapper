@@ -95,13 +95,26 @@ def get_str():
     else:
         tk.messagebox.showwarning("경고!","아직 크롤링 중입니다.")
         
+def setting():
+    newWindow = tk.Toplevel(root)
+    labelExample = tk.Label(newWindow, text = "New Window")
+    buttonExample = tk.Button(newWindow, text = "New Window button")
 
-
+    labelExample.pack()
+    buttonExample.pack()
+    
 root = tk.Tk()
 root.geometry('325x475')
 root.title('인스타그램 크롤러')
 root.resizable(False,False)
+root.iconphoto(False, tk.PhotoImage(file='./img/instargram_icon.png'))
 
+menu_bar = tk.Menu(root)
+menu1 = tk.Menu(menu_bar, tearoff = 0)
+menu1.add_command(label="Setting", command = setting)
+menu_bar.add_cascade(label='Setting', menu = menu1)
+
+root.config(menu = menu_bar)
 
 lbl = tk.Label(root, text="ID")
 lbl.grid(row=0, column=0)
@@ -116,6 +129,6 @@ search_lbl.grid(row = 2, column = 0)
 search = tk.Entry(root)
 search.grid(row=2, column = 1)
 btn = tk.Button(root, text="실행", width=15 , command=get_str)
-btn.grid(row=3, column=1)
+btn.grid(row=3, column=0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
 
 root.mainloop()
