@@ -17,13 +17,14 @@ from PIL import ImageTk,Image
 import tkinter as tk
 import tkinter.messagebox
 import os
+import os.path
 import re
 import time
 import threading
 
 isRunning = False # 현재 크롤링 중인지 확인할 변수
 instagram_tags = [] # 태그를 저장할 리스트
-
+current = 0
 
 def scrapping(user, pwd, plus_url):
     global instagram_tags
@@ -114,8 +115,16 @@ def setting():
     labelExample.pack()
     buttonExample.pack()
 
-def show_img():
-    return
+def show_img(delta):
+    global current, sorted_imagelist
+    if not (0 <= current - delta < len(sorted_imagelist)):
+        tkinter.Tk.tkMessageBox.showinfo('End', 'No more image.')
+        return
+    current -= delta
+    image = Image.open(sorted_imagelist[current])
+    photo = ImageTk.PhotoImage(image)
+    img_lbl['image'] = photo
+    img_lbl.photo = photo
 
 root = tk.Tk()
 root.geometry('325x475')
@@ -145,6 +154,13 @@ search.grid(row=2, column = 1)
 btn = tk.Button(root, text="실행", width=15 , command=get_str)
 btn.grid(row=3, column=0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
 
+try:
+    image_list = [os.path.join("./img/" + search.get(),fn) for fn in next(os.walk("./img/"+ search.get()))[2]]
+    sorted_imagelist = sorted(image_list, key=str.swapcase, reverse=True)
+except:
+    print("can't find directory")
 
+img_lbl = tkinter.Label(root, compound=tkinter.TOP, bg="#eee")
+img_lbl.grid(row=4, column=0, columnspan=2)
 
 root.mainloop()
