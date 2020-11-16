@@ -3,7 +3,7 @@ first commit : 2020. 11. 3
 
 202011751 컴퓨터공학부 최진영
 
-instagram_crowler
+name : instagram_data_scrapper
 
 인스타그램의 특정 태그를 검색하여 이미지와 해시태그 데이터를 수집하는 프로그램이다.
 
@@ -14,6 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
 from PIL import ImageTk,Image
+from collections import Counter
 import tkinter as tk
 import tkinter.messagebox
 import os
@@ -21,10 +22,10 @@ import os.path
 import re
 import time
 import threading
+import csv
 
 isRunning = False # 현재 크롤링 중인지 확인할 변수
 instagram_tags = [] # 태그를 저장할 리스트
-current = 0
 
 def scrapping(user, pwd, plus_url):
     global instagram_tags
@@ -36,7 +37,7 @@ def scrapping(user, pwd, plus_url):
         browser = webdriver.Chrome('./chromedriver.exe') #현재 폴더에 위치한 드라이버를 browser로 객체화함
         browser.get(url) # 브라우저를 실행햐여 url 주소에 접근
 
-        time.sleep(2) # 2초동안 페이지 업데이트를 기다림
+        time.sleep(3) # 3초동안 페이지 업데이트를 기다림
 
         html = browser.page_source # 페이지의 html 데이터 가져옴
         soup = BeautifulSoup(html) # html 데이터를 beautifulsoup로 객체화함
@@ -48,11 +49,11 @@ def scrapping(user, pwd, plus_url):
         elem.send_keys(pwd) # pwd(Password)값을 요소에 보낸다.
         elem.send_keys(Keys.RETURN) # RETURN 시킨다.
 
-        time.sleep(3) # 페이지 로딩 대기
+        time.sleep(4) # 페이지 로딩 대기
 
         browser.find_element_by_css_selector('button.sqdOP.L3NKy.y3zKF').click() # button.sqdOP.L3NKy.y3zKF 태그를 찾아 클릭
 
-        time.sleep(3) # 페이지 로딩 대기
+        time.sleep(4) # 페이지 로딩 대기
 
         insta = soup.select('.v1Nh3.kIKUG._bz0w') # 한 줄(3개)의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 선택
 
@@ -72,27 +73,33 @@ def scrapping(user, pwd, plus_url):
 
         browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click() # 한 줄(3개)의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 클릭
         for i in range(0,n-1): # 다운받은 파일의 개수만큼 for 문이 돈다.
-            time.sleep(1)
-            data = browser.find_element_by_css_selector('div.C7I1f.X7jCj') # 해시태그가 있는 요소를 선택
-            tag_raw = data.text # text 데이터를 받아온다.
-            tags = re.findall('#[A-Za-z0-9가-힣]+', tag_raw) #text 데이터에서 영문과 한글만을 추려낸다.
-            tag = ''.join(tags).replace("#"," ") # #를 공백문자로 치환한다.
+            try:
+                time.sleep(1)
+                data = browser.find_element_by_css_selector('div.C7I1f.X7jCj') # 해시태그가 있는 요소를 선택
+                tag_raw = data.text # text 데이터를 받아온다.
+                tags = re.findall('#[A-Za-z0-9가-힣]+', tag_raw) #text 데이터에서 영문과 한글만을 추려낸다.
+                tag = ''.join(tags).replace("#"," ") # #를 공백문자로 치환한다.
 
-            tag_data = tag.split()
+                tag_data = tag.split()
 
-            for tag_one in tag_data:
-                instagram_tags.append(tag_one)
-        
-            browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click()
+                for tag_one in tag_data:
+                    instagram_tags.append(tag_one)
+            except Exception as a: # 요소선택에 실패했을 경우 오류 메세지 출력후 다음 작업 진행
+                print(a)
+            browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click() # 다음 게시물로 넘어가는 버튼을 찾아 클릭
             time.sleep(3)
+
+        # 모은 태그들을 csv 파일화 한다.
+        make_csv(instagram_tags,plus_url)
 
         browser.close()
 
         global isRunning
         isRunning = False
         tk.messagebox.showinfo("","크롤링이 완료되었습니다.")
-    except:
+    except Exception as e:
         isRunning = False
+        print('예외 발생 : ',e) # 예외 발생시 오류 메세지 출력
         tk.messagebox.showerror("","크롤링이 중단되었습니다.") # 예외가 발생하여 크롤링이 중단되었을시 에러메시지 윈도우를 보여준다.
         
 
@@ -103,11 +110,12 @@ def get_str():
         password_ = pwd.get()
         search_ = search.get()
         isRunning = True
-        t = threading.Thread(target=scrapping, args=(id_,password_,search_))
+        t = threading.Thread(target=scrapping, args=(id_,password_,search_)) # scrapping 함수를 별도의 스레드를 통하여 구동하여 GUI부분의 응답없음 문제를 해결
         t.start()
     else:
         tk.messagebox.showwarning("경고!","아직 크롤링 중입니다.")
         
+
 def setting():
     newWindow = tk.Toplevel(root)
     labelExample = tk.Label(newWindow, text = "New Window")
@@ -115,16 +123,15 @@ def setting():
     labelExample.pack()
     buttonExample.pack()
 
-def show_img(delta):
-    global current, sorted_imagelist
-    if not (0 <= current - delta < len(sorted_imagelist)):
-        tkinter.Tk.tkMessageBox.showinfo('End', 'No more image.')
-        return
-    current -= delta
-    image = Image.open(sorted_imagelist[current])
-    photo = ImageTk.PhotoImage(image)
-    img_lbl['image'] = photo
-    img_lbl.photo = photo
+# csv 파일을 만드는 함수
+def make_csv(tag_list,name):
+    cnt = Counter(tag_list) # Counter를 이용하여 태그의 종류와 갯수를 딕셔너리화 한다.
+    f = open(f'./csv/{name}.csv', 'w', encoding='utf-8',newline='')
+    csvWriter = csv.writer(f)
+    for key,count in cnt.items(): # cnt 에서 key값과 count 값을 뽑아낸다.
+        csvWriter.writerow([key,count])
+    f.close()
+    
 
 root = tk.Tk()
 root.geometry('325x475')
@@ -153,14 +160,5 @@ search = tk.Entry(root)
 search.grid(row=2, column = 1)
 btn = tk.Button(root, text="실행", width=15 , command=get_str)
 btn.grid(row=3, column=0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
-
-try:
-    image_list = [os.path.join("./img/" + search.get(),fn) for fn in next(os.walk("./img/"+ search.get()))[2]]
-    sorted_imagelist = sorted(image_list, key=str.swapcase, reverse=True)
-except:
-    print("can't find directory")
-
-img_lbl = tkinter.Label(root, compound=tkinter.TOP, bg="#eee")
-img_lbl.grid(row=4, column=0, columnspan=2)
 
 root.mainloop()
