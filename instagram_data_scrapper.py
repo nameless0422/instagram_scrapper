@@ -13,7 +13,6 @@ from urllib.parse import quote_plus
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from bs4 import BeautifulSoup
-from PIL import ImageTk,Image
 from collections import Counter
 import tkinter as tk
 import tkinter.messagebox
@@ -29,13 +28,14 @@ instagram_tags = [] # 태그를 저장할 리스트
 
 def scrapping(user, pwd, plus_url):
     global instagram_tags
+    instagram_tags.clear() # 크롤링을 시작하자마자 초기화 해준다.
     try:
         base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
 
         url = base_url + quote_plus(plus_url) # url 합치기
 
         browser = webdriver.Chrome('./chromedriver.exe') #현재 폴더에 위치한 드라이버를 browser로 객체화함
-        browser.get(url) # 브라우저를 실행햐여 url 주소에 접근
+        browser.get(url) # 웹드라이버를 실행햐여 url 주소에 접근
 
         time.sleep(3) # 3초동안 페이지 업데이트를 기다림
 
@@ -60,30 +60,30 @@ def scrapping(user, pwd, plus_url):
         if not os.path.isdir('./img\\{}'.format(plus_url)): # img 폴더에 태그명으로 만들어진 폴더가 없으면
             os.mkdir('./img\\{}'.format(plus_url)) # 태그명의 폴더 생성
 
-        n = 1
+        n = 0
         for i in insta:
             time.sleep(1)
             img_url = i.select_one('.KL4Bh').img['src'] # 이미지 하나를 선택
 
             with urlopen(img_url) as f:
-                with open('./img/' + plus_url + '/' + plus_url + str(n) + '.jpg',mode='wb') as h: # img/태그명 디렉토리에 태그명n.jpg 식의 이름으로 
+                with open('./img/' + plus_url + '/' + plus_url + str(n+1) + '.jpg',mode='wb') as h: # img/태그명 디렉토리에 태그명n+1.jpg 식의 이름으로 
                     img = f.read()
                     h.write(img) # 이미지를 작성
                 n += 1                
 
         browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click() # 한 줄(3개)의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 클릭
-        for i in range(0,n-1): # 다운받은 파일의 개수만큼 for 문이 돈다.
+        for i in range(0,n): # 다운받은 파일의 개수만큼 for 문이 돈다.
             try:
                 time.sleep(1)
                 data = browser.find_element_by_css_selector('div.C7I1f.X7jCj') # 해시태그가 있는 요소를 선택
                 tag_raw = data.text # text 데이터를 받아온다.
                 tags = re.findall('#[A-Za-z0-9가-힣]+', tag_raw) #text 데이터에서 영문과 한글만을 추려낸다.
-                tag = ''.join(tags).replace("#"," ") # #를 공백문자로 치환한다.
+                tag = ''.join(tags).replace("#"," ") # #를 공백문자로 치환하여 문자열화 시킨다.
 
-                tag_data = tag.split()
+                tag_data = tag.split() # 문자열을 리스트로 나눈다.
 
                 for tag_one in tag_data:
-                    instagram_tags.append(tag_one)
+                    instagram_tags.append(tag_one) # tag_data 의 값을 instagram_tages 리스트에 넣는다.
             except Exception as a: # 요소선택에 실패했을 경우 오류 메세지 출력후 다음 작업 진행
                 print(a)
             browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click() # 다음 게시물로 넘어가는 버튼을 찾아 클릭
@@ -134,7 +134,7 @@ def make_csv(tag_list,name):
     
 
 root = tk.Tk()
-root.geometry('325x475')
+root.geometry('325x120')
 root.title('인스타그램 크롤러')
 root.resizable(False,False)
 root.iconphoto(False, tk.PhotoImage(file='./img/instagram_icon.png'))
