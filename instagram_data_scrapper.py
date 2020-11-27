@@ -22,13 +22,15 @@ import re
 import time
 import threading
 import csv
+import configparser
 
 isRunning = False # 현재 크롤링 중인지 확인할 변수
 instagram_tags = [] # 태그를 저장할 리스트
 
+# 크롤링을 하는 함수
 def scrapping(user, pwd, plus_url):
     global instagram_tags
-    instagram_tags.clear() # 크롤링을 시작하자마자 초기화 해준다.
+    instagram_tags.clear() # 크롤링을 시작하자마자 태그를 저장하는 리스트를 초기화 해준다.
     try:
         base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
 
@@ -100,28 +102,53 @@ def scrapping(user, pwd, plus_url):
     except Exception as e:
         isRunning = False
         print('예외 발생 : ',e) # 예외 발생시 오류 메세지 출력
-        tk.messagebox.showerror("","크롤링이 중단되었습니다.") # 예외가 발생하여 크롤링이 중단되었을시 에러메시지 윈도우를 보여준다.
-        
+        tk.messagebox.showerror("","크롤링이 중단되었습니다.") # 예외가 발생하여 크롤링이 중단되었을시 에러메시지 윈도우를 보여준다.        
 
-def get_str():
+# 설정 파일을 읽어와 반환하는 함수
+def open_setting():
+    global config
+    if os.path.isfile('./config.ini') == True:
+        config.read("./config.ini")
+        id_ = config['acount_info']['ID']
+        password_ = config['acount_info']['Password']
+        return id_, password_
+    else: # config.ini 파일이 없을 경우 그냥 return
+        return
+
+# 크롤링 전에 설정파일과 키워드를 전달하는 함수
+def pre_scrapping(search):
     global isRunning
     if isRunning == False:
-        id_ = txt.get()
-        password_ = pwd.get()
+        try:
+            id_, password_ = open_setting() #그냥 return 되었을 경우 오류가 발생해 예외처리로 넘어감
+        except:
+            tk.messagebox.showwarning("경고!","config.ini 파일이 존재하지 않습니다.")
+            return
         search_ = search.get()
         isRunning = True
         t = threading.Thread(target=scrapping, args=(id_,password_,search_)) # scrapping 함수를 별도의 스레드를 통하여 구동하여 GUI부분의 응답없음 문제를 해결
         t.start()
     else:
         tk.messagebox.showwarning("경고!","아직 크롤링 중입니다.")
-        
 
-def setting():
-    newWindow = tk.Toplevel(root)
-    labelExample = tk.Label(newWindow, text = "New Window")
-    buttonExample = tk.Button(newWindow, text = "New Window button")
-    labelExample.pack()
-    buttonExample.pack()
+# 설정 window GUI
+def setting_Window():
+    make_set = tk.Toplevel(root)
+    make_set.geometry('290x80')
+    make_set.title('Setting')
+    make_set.resizable(False,False)
+    make_set.iconphoto(False, tk.PhotoImage(file='./img/instagram_icon.png'))
+
+    lbl = tk.Label(make_set, text="ID")
+    lbl.grid(row=0, column=0)
+    txt = tk.Entry(make_set)
+    txt.grid(row=0, column=1)
+    pwd_lbl = tk.Label(make_set, text="Password")
+    pwd_lbl.grid(row=1, column=0)
+    pwd = tk.Entry(make_set, show='*')
+    pwd.grid(row=1,column = 1)
+    btn = tk.Button(make_set, text = "확인 후 종료" ,command = lambda : is_entered(make_set, txt, pwd, config))
+    btn.grid(row=2,column = 0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
 
 # csv 파일을 만드는 함수
 def make_csv(tag_list,name):
@@ -131,34 +158,45 @@ def make_csv(tag_list,name):
     for key,count in cnt.items(): # cnt 에서 key값과 count 값을 뽑아낸다.
         csvWriter.writerow([key,count])
     f.close()
-    
 
+#설정을 저장하는 함수
+def is_entered(window, ID, PWD, Config):
+    if len(ID.get()) == 0 or len(PWD.get()) == 0:
+        tk.messagebox.showerror("","입력값이 필요합니다.")
+        return
+    else:
+        config['acount_info'] = {}
+        config['acount_info']['ID'] = ID.get()
+        config['acount_info']['Password'] = PWD.get()
+        with open('config.ini','wt',encoding='utf-8') as con_file:
+            config.write(con_file)
+        window.destroy()
+
+# ConfigParser 객체 생성
+config = configparser.ConfigParser()
+
+# main GUI 구현부
 root = tk.Tk()
-root.geometry('325x120')
+root.geometry('325x75')
 root.title('인스타그램 크롤러')
 root.resizable(False,False)
 root.iconphoto(False, tk.PhotoImage(file='./img/instagram_icon.png'))
 
 menu_bar = tk.Menu(root)
 menu1 = tk.Menu(menu_bar, tearoff = 0)
-menu1.add_command(label="Setting", command = setting)
+menu1.add_command(label="Setting", command = setting_Window)
 menu_bar.add_cascade(label='Setting', menu = menu1)
 
 root.config(menu = menu_bar)
 
-lbl = tk.Label(root, text="ID")
-lbl.grid(row=0, column=0)
-txt = tk.Entry(root)
-txt.grid(row=0, column=1)
-pwd_lbl = tk.Label(root, text="Password")
-pwd_lbl.grid(row=1, column=0)
-pwd = tk.Entry(root, show='*')
-pwd.grid(row=1,column = 1)
 search_lbl = tk.Label(root, text="검색할 해시태그를 입력하세요")
-search_lbl.grid(row = 2, column = 0)
+search_lbl.grid(row = 0, column = 0)
 search = tk.Entry(root)
-search.grid(row=2, column = 1)
-btn = tk.Button(root, text="실행", width=15 , command=get_str)
-btn.grid(row=3, column=0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
+search.grid(row=0, column = 1)
+btn = tk.Button(root, text="실행", width=15 , command=lambda : pre_scrapping(search))
+btn.grid(row=1, column=0, columnspan=2, padx = 5, pady= 5, ipadx = 100)
+
+setting_Window()
 
 root.mainloop()
+
