@@ -29,7 +29,6 @@ import configparser
 isRunning = False # 현재 크롤링 중인지 확인할 변수
 instagram_tags = [] # 태그를 저장할 리스트
 
-# 크롤링을 하는 함수
 def scrapping(user, pwd, plus_url):
     global instagram_tags
     instagram_tags.clear() # 크롤링을 시작하자마자 태그를 저장하는 리스트를 초기화 해준다.
@@ -37,52 +36,36 @@ def scrapping(user, pwd, plus_url):
         base_url = 'https://www.instagram.com/explore/tags/' # 기본 사이트 주소
 
         url = base_url + quote_plus(plus_url) # url 합치기
-
         browser = webdriver.Chrome('./chromedriver.exe') #현재 폴더에 위치한 드라이버를 browser로 객체화함
-
         browser.get(url) # 웹드라이버를 실행햐여 url 주소에 접근
-
         time.sleep(3) # 3초동안 페이지 업데이트를 기다림
-
+        html = browser.page_source # 페이지의 html 데이터 가져옴
+        soup = BeautifulSoup(html) # html 데이터를 beautifulsoup로 객체화함
+        browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click() # 페이지 내의 이미지의 CSS 태그 div.v1Nh3.kIKUG._bz0w 를 찾아 클릭한다.
         elem = browser.find_element_by_name('username') # 페이지 내의 username 이라는 요소를 찾는다.
         elem.send_keys(user) # user(ID)값을 요소에 보낸다. 
         elem = browser.find_element_by_name('password') # 페이지 내의 password 이라는 요소를 찾는다.
         elem.send_keys(pwd) # pwd(Password)값을 요소에 보낸다.
         elem.send_keys(Keys.RETURN) # RETURN 시킨다.
-
         time.sleep(4) # 페이지 로딩 대기
-
         browser.find_element_by_css_selector('button.sqdOP.L3NKy.y3zKF').click() # button.sqdOP.L3NKy.y3zKF 태그를 찾아 클릭
-
-        time.sleep(3) # 페이지 로딩 대기
-
-        browser.get(url) # 웹드라이버를 실행햐여 url 주소에 접근
-
-        time.sleep(5) # 페이지 로딩 대기
-
-        html = browser.page_source # 페이지의 html 데이터 가져옴
-        soup = BeautifulSoup(html) # html 데이터를 beautifulsoup로 객체화함
-
-        insta = soup.select('.eLAPa') #이미지를 나타내는 .eLAPa 태그를 선택
-
+        time.sleep(4) # 페이지 로딩 대기
+        insta = soup.select('.v1Nh3.kIKUG._bz0w') # 한 줄(3개)의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 선택
         if not os.path.isdir('./img\\{}'.format(plus_url)): # img 폴더에 태그명으로 만들어진 폴더가 없으면
             os.mkdir('./img\\{}'.format(plus_url)) # 태그명의 폴더 생성
-
         n = 0
         for i in insta:
             time.sleep(1)
-            img_url = i.select_one('.KL4Bh').img['src'] # 이미지 하나를 선택하여 주소를 저장한다.
-
+            img_url = i.select_one('.KL4Bh').img['src'] # 이미지 하나를 선택
             with urlopen(img_url) as f:
                 with open('./img/' + plus_url + '/' + plus_url + str(n+1) + '.jpg',mode='wb') as h: # img/태그명 디렉토리에 태그명n+1.jpg 식의 이름으로 
                     img = f.read()
                     h.write(img) # 이미지를 작성
                 n += 1                
-
-        browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click() # 한 개의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 클릭
-        time.sleep(2)
-        for i in range(0,n-1): # 다운받은 파일의 개수만큼 for 문이 돈다.
+        browser.find_element_by_css_selector('div.v1Nh3.kIKUG._bz0w').click() # 한 줄(3개)의 이미지를 나타내는 .v1Nh3.kIKUG._bz0w 태그를 클릭
+        for i in range(0,n): # 다운받은 파일의 개수만큼 for 문이 돈다.
             try:
+                time.sleep(1)
                 tag_data = []
                 time.sleep(1.5)
                 data = browser.find_element_by_css_selector('div.C7I1f.X7jCj') # 해시태그가 있는 요소를 선택
@@ -97,19 +80,16 @@ def scrapping(user, pwd, plus_url):
                 print(a)
             browser.find_element_by_css_selector('a._65Bje.coreSpriteRightPaginationArrow').click() # 다음 게시물로 넘어가는 버튼을 찾아 클릭
             time.sleep(3)
-
         # 모은 태그들을 csv 파일화 한다.
         make_csv(instagram_tags,plus_url)
-
         browser.close()
-
         global isRunning
         isRunning = False
         tk.messagebox.showinfo("","크롤링이 완료되었습니다.")
     except Exception as e:
         isRunning = False
         print('예외 발생 : ',e) # 예외 발생시 오류 메세지 출력
-        tk.messagebox.showerror("","크롤링이 중단되었습니다.") # 예외가 발생하여 크롤링이 중단되었을시 에러메시지 윈도우를 보여준다.        
+        tk.messagebox.showerror("","크롤링이 중단되었습니다.") # 예외가 발생하여 크롤링이 중단되었을시 에러메시지 윈도우를 보여준다.  
 
 # 설정 파일을 읽어와 반환하는 함수
 def open_setting():
